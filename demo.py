@@ -25,26 +25,26 @@ except ImportError:
 except Exception as e:
     print(f"Warning: Failed to apply torchvision fix: {e}")
 
-# shape
-logging.info("--- Starting Shape Generation Stage ---")
-model_path = 'tencent/Hunyuan3D-2.1'
-pipeline_shapegen = Hunyuan3DDiTFlowMatchingPipeline.from_pretrained(model_path)
+# # shape
+# logging.info("--- Starting Shape Generation Stage ---")
+# model_path = 'tencent/Hunyuan3D-2.1'
+# pipeline_shapegen = Hunyuan3DDiTFlowMatchingPipeline.from_pretrained(model_path)
 
-image_path = 'assets/chair_front.png'
-logging.info(f"Loading image from: {image_path}")
-image = Image.open(image_path).convert("RGBA")
-logging.info("Image is RGB, removing background...")
-rembg = BiRefNetRemover()
-image = rembg(image)
+# image_path = 'assets/chair_front.png'
+# logging.info(f"Loading image from: {image_path}")
+# image = Image.open(image_path).convert("RGBA")
+# logging.info("Image is RGB, removing background...")
+# rembg = BiRefNetRemover()
+# image = rembg(image)
 
-logging.info("Running shape generation pipeline...")
-mesh = pipeline_shapegen(image=image)[0]
-mesh.export('demo.glb')
-logging.info("--- Shape Generation Finished. Saved to demo.glb ---")
+# logging.info("Running shape generation pipeline...")
+# mesh = pipeline_shapegen(image=image)[0]
+# mesh.export('demo.glb')
+# logging.info("--- Shape Generation Finished. Saved to demo.glb ---")
 
 # paint
 logging.info("--- Starting Paint Generation Stage ---")
-max_num_view = 6  # can be 6 to 9
+max_num_view = 9  # can be 6 to 9
 resolution = 512  # can be 768 or 512
 conf = Hunyuan3DPaintConfig(max_num_view, resolution)
 conf.realesrgan_ckpt_path = "hy3dpaint/ckpt/RealESRGAN_x4plus.pth"
@@ -54,8 +54,8 @@ paint_pipeline = Hunyuan3DPaintPipeline(conf)
 
 output_mesh_path = 'demo_textured.glb'
 output_mesh_path = paint_pipeline(
-    mesh_path = "demo.glb", 
-    image_path = 'assets/chair_front.png',
+    mesh_path = "assets/1K.glb", 
+    image_path = 'assets/3.jpg',
     output_mesh_path = output_mesh_path
 )
 logging.info(f"--- Paint Generation Finished. Saved to {output_mesh_path} ---")
