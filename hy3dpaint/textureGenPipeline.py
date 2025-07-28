@@ -44,6 +44,7 @@ class Hunyuan3DPaintConfig:
         self.multiview_pretrained_path = "tencent/Hunyuan3D-2.1"
         self.dino_ckpt_path = "facebook/dinov2-giant"
         self.realesrgan_ckpt_path = "ckpt/RealESRGAN_x4plus.pth"
+        self.realesrgan_output_size = 2048 # Default for safety
 
         self.raster_mode = "cr"
         self.bake_mode = "back_sample"
@@ -94,7 +95,7 @@ class Hunyuan3DPaintPipeline:
     def __call__(self, mesh_path=None, image_path=None, output_mesh_path=None, use_remesh=True, save_glb=True):
         """Generate texture for 3D mesh using multiview diffusion"""
         logging.info("--- Starting Hunyuan3D Paint Pipeline ---")
-        
+
         # Ensure image_prompt is a list
         logging.info("Step 1/11: Processing input image prompt...")
         if isinstance(image_path, str):
@@ -175,11 +176,13 @@ class Hunyuan3DPaintPipeline:
 
         ###########  Bake  ##########
         logging.info("Step 9/11: Baking and merging enhanced textures from multiple views...")
-        for i in range(len(enhance_images)):
-            enhance_images["albedo"][i] = enhance_images["albedo"][i].resize(
-                (self.config.render_size, self.config.render_size)
-            )
-            enhance_images["mr"][i] = enhance_images["mr"][i].resize((self.config.render_size, self.config.render_size))
+        # The resizing step here is now redundant, as the super_model handles the final output size.
+        # We can remove these lines to ensure the output from the upscaler is used directly.
+        # for i in range(len(enhance_images)):
+        #     enhance_images["albedo"][i] = enhance_images["albedo"][i].resize(
+        #         (self.config.render_size, self.config.render_size)
+        #     )
+        #     enhance_images["mr"][i] = enhance_images["mr"][i].resize((self.config.render_size, self.config.render_size))
         texture, mask = self.view_processor.bake_from_multiview(
             enhance_images["albedo"], selected_camera_elevs, selected_camera_azims, selected_view_weights
         )
@@ -198,13 +201,13 @@ class Hunyuan3DPaintPipeline:
             self.render.set_texture_mr(texture_mr)
 
         logging.info("Step 11/11: Saving final textured mesh to OBJ format...")
-        self.render.save_mesh(output_mesh_path, downsample=True)
+        self.render.save_mesh(output_mesh_path, downsample=False)
 
         if save_glb:
             logging.info("Converting OBJ to GLB format...")
             convert_obj_to_glb(output_mesh_path, output_mesh_path.replace(".obj", ".glb"))
             output_glb_path = output_mesh_path.replace(".obj", ".glb")
-        
+
         logging.info("--- Hunyuan3D Paint Pipeline Finished ---")
 
         return output_mesh_path
